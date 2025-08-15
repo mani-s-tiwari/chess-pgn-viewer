@@ -1,8 +1,8 @@
 # ♞ BaddKnight - Synchronized Chess PGN Viewer
 
 **A dynamic web-based PGN viewer with game synchronization, analysis tools, and related game discovery**
-view(https://chess-pgn-viewer.onrender.com)
-![Screenshot](https://example.com/screenshot.png) <!-- Replace with actual screenshot -->
+https://chess-pgn-viewer.onrender.com
+<!-- Replace with actual screenshot -->
 
 ## ✨ Features
 
