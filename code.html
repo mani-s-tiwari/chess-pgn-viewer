@@ -1,6 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess PGN Viewer</title>
+    <link rel="icon" href="logo.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Top section with title and buttons */
+        .top-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+        
+        .title {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .top-button {
+            padding: 8px 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .top-button:hover {
+            background: #45a049;
+        }
+        
+        .top-button.active {
+            background: #388e3c;
+            font-weight: bold;
+        }
+        
+        .add-button {
+            background: #2196F3;
+        }
+        
+        .add-button:hover {
+            background: #0b7dda;
+        }
+        
+        /* Main container layout */
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Left panel with files and related games */
+        .left-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            display: none;
+        }
+        
+        .panel-section {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        
+        /* Right panel for moves */
+        .right-panel {
+            width: 100%;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            order: 3;
+        }
+        
+        /* Common item styles */
+        .pgn-file-item, .game-item, .related-game-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pgn-file-item:hover, .game-item:hover, .related-game-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .pgn-file-item.active, .game-item.active, .related-game-item.active {
+            border-left-color: #4CAF50;
+            background-color: #f0f8f0;
+        }
+        
+        /* Chessboard and controls */
+        .board-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            order: 2;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        #board {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .controls button {
+            padding: 8px 15px;
+            cursor: pointer;
+            min-width: 70px;
+        }
+        
+        /* Game info */
+        .game-info {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        /* Move list in right panel */
+        .move-list-container {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .move-pair {
+            display: flex;
+            margin-bottom: 5px;
+            background: #f9f9f9;
+            border-radius: 3px;
+            padding: 3px 8px;
+        }
+        
+        .move-number {
+            color: #666;
+            margin-right: 5px;
+        }
+        
+        .move {
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        
+        .white-move {
+            background-color: #f8f8f8;
+        }
+        
+        .black-move {
+            background-color: #f0f0f0;
+        }
+        
+        .move.active {
+            background-color: #c8e6c9;
+        }
+        
+        .move.current {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        
+        /* Loading states */
+        .loading, .empty, .error {
+            padding: 15px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .error {
+            color: #d32f2f;
+        }
+        
+        /* File upload */
+        .file-upload {
+            display: none;
+        }
+        
+        /* Current game title */
+        #currentGameTitle {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
         /* Dark mode styles */
-        body.dark-mode,
-        body.dark-mode .currentGameTitle {
+        body.dark-mode #currentGameTitle {
+            background-color: #333;
+            color: #f0f0f0;
+            border: 1px solid #444;
+        }
+
+        body.dark-mode {
             background-color: #1a1a1a;
             color: #f0f0f0;
         }
@@ -19,38 +253,907 @@
             color: #f0f0f0;
         }
 
-        body.dark-mode .pgn-file-item.active, 
-        body.dark-mode .game-item.active, 
-        body.dark-mode .related-game-item.active{
-            border-left-color: #b24633;
-             background-color: #333;
+        body.dark-mode .move-pair {
+            background-color: #333;
         }
 
-        body.dark-mode .move.current {
-            background-color: #b24633;  /* Earthy red for visibility */
-            color: white;
-            font-weight: bold;
-            border-left: 3px solid #ff6b4a;  /* Brighter accent border */
-        }
-
-        body.dark-mode .move.active {
-            background-color: #d43c39;  /* Darker green for past moves */
-            color: #e0e0e0;
-        }
-
-        /* Enhanced dark mode contrast */
         body.dark-mode .white-move {
-            background-color: #3a3a3a;
-            color: #f0f0f0;
+            background-color: #444;
         }
 
         body.dark-mode .black-move {
-            background-color: #2a2a2a;
-            color: #e0e0e0;
+            background-color: #555;
         }
-
-        body.dark-mode .move-pair {
-            background-color: #242424;
-            border-left: 1px solid #444;
+        
+        /* Mobile menu button */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+            color: inherit;
         }
+        
+        /* Marshmallow menu */
+        .marshmallow-menu {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .marshmallow-main-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .marshmallow-items {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+        
+        .marshmallow-menu.open .marshmallow-items {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .marshmallow-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #2196F3;
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .back-button {
+            display: none;
+            padding: 8px 12px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        /* Responsive styles */
+        @media (min-width: 768px) {
+            .main-container {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .left-panel {
+                width: 300px;
+                display: flex;
+            }
+            
+            .right-panel {
+                width: 300px;
+                order: 3;
+            }
+            
+            .board-container {
+                flex: 1;
+                min-width: 300px;
+                order: 2;
+            }
+            
+            .mobile-menu-btn, .marshmallow-menu {
+                display: none;
+            }
+            
+            .button-container {
+                display: flex;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .button-container {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .marshmallow-menu {
+                display: block;
+            }
+            
+            .panel-section.active-panel {
+                display: block;
+            }
+            
+            .back-button {
+                display: inline-block;
+            }
+        }
+    </style>
+    <link rel="stylesheet"
+          href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"
+          crossorigin="anonymous">
+</head>
+<body>
+    <!-- Top section with title and buttons -->
+    <div class="top-section">
+        <div class="title" style="display: flex; align-items: center; gap: 0.75rem;">
+            <img src="logo.png" alt="Logo" style="height: 2.8rem;" />
+            <h1 style="margin: 0.5rem 0; font-size: 2.4rem;">
+                BaddKnight
+            </h1>
+        </div>
+        
+        <div class="button-container">
+            <button class="top-button active" id="showFilesBtn">Files</button>
+            <button class="top-button" id="showGamesBtn">Games</button>
+            <button class="top-button" id="showRelatedBtn">Related</button>
+            <button class="top-button add-button" id="addPgnBtn">+ Add PGN</button>
+        </div>
+        
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+    </div>
 
+    <!-- PGN Viewer subtitle -->
+    <div style="font-size: 1.2rem; font-weight: normal; margin-top: -1.5rem; margin-bottom: 0.5rem; padding: 0 10px; text-align: center;">
+        Synchorized Chess PGN Viewer
+    </div>
+
+    <!-- Current game name -->
+    <div class="currentGameTitle" id="currentGameTitle">No game loaded</div>
+    
+    <!-- Hidden file input -->
+    <input type="file" id="pgnFileInput" class="file-upload" accept=".pgn,.txt">
+    
+    <div class="main-container">
+        <!-- Left panel with files and related games -->
+        <div class="left-panel">
+            <div class="panel-section" id="filesPanel">
+                <button class="back-button" id="backFromFilesBtn">← Back</button>
+                <h2>PGN Files</h2>
+                <div id="pgnFilesList">
+                    <div class="empty">No PGN files loaded</div>
+                </div>
+            </div>
+            
+            <div class="panel-section" id="gamesListPanel">
+                <button class="back-button" id="backFromGamesBtn">← Back</button>
+                <h2>Games in PGN</h2>
+                <div id="gamesList">
+                    <div class="empty">No PGN file loaded</div>
+                </div>
+            </div>
+            
+            <div class="panel-section" id="relatedGamesPanel">
+                <button class="back-button" id="backFromRelatedBtn">← Back</button>
+                <h2>Related Games</h2>
+                <div id="relatedGamesList">
+                    <div class="empty">No related games found</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chessboard and controls -->
+        <div class="board-container">
+            <div id="board"></div>
+            
+            <div class="controls">
+                <button id="firstMoveBtn">« First</button>
+                <button id="prevMoveBtn">‹ Prev</button>
+                <button id="nextMoveBtn">Next ›</button>
+                <button id="lastMoveBtn">Last »</button>
+            </div>
+            
+            <div class="controls auto-play-controls">
+                <button id="playBtn">▶ Play</button>
+                <button id="pauseBtn" disabled>❚❚ Pause</button>
+                <select id="speedSelect">
+                    <option value="2000">Slow</option>
+                    <option value="1000" selected>Normal</option>
+                    <option value="500">Fast</option>
+                    <option value="200">Very Fast</option>
+                </select>
+            </div>
+            
+            <div class="game-info" id="gameInfo">
+                <h3>Game Information</h3>
+                <div id="gameHeader"></div>
+            </div>
+        </div>
+        
+        <!-- Right panel for moves -->
+        <div class="right-panel">
+            <h2>Moves</h2>
+            <div class="move-list-container" id="moveList"></div>
+        </div>
+    </div>
+
+    <!-- Marshmallow menu for mobile -->
+    <div class="marshmallow-menu" id="marshmallowMenu">
+        <div class="marshmallow-items">
+            <button class="marshmallow-item" id="mobileFilesBtn" title="Files">📁</button>
+            <button class="marshmallow-item" id="mobileGamesBtn" title="Games">♞</button>
+            <button class="marshmallow-item" id="mobileRelatedBtn" title="Related">🔗</button>
+            <button class="marshmallow-item add-button" id="mobileAddBtn" title="Add PGN">+</button>
+        </div>
+        <button class="marshmallow-main-btn" id="marshmallowMainBtn">☰</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pgn-parser@1.3.9/dist/pgn.js"></script>
+
+    <script>
+        // Global variables
+        var board, game, currentGameIndex = 0, games = [], currentMove = 0;
+        var autoPlayInterval = null, playSpeed = 1000;
+        var currentPgnFile = null;
+        var movesHistory = [];
+        var loadedFiles = {};
+        var isMobile = window.innerWidth <= 767;
+        
+        // Initialize chessboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            board = Chessboard('board', {
+                position: 'start',
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                draggable: true,
+                onDrop: onDrop
+            });
+            
+            game = new Chess();
+            setupEventListeners();
+            
+            // Check for dark mode preference
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                isMobile = window.innerWidth <= 767;
+                if (!isMobile) {
+                    // Reset to desktop view when resizing to larger screen
+                    document.querySelectorAll('.panel-section').forEach(panel => {
+                        panel.style.display = 'none';
+                    });
+                    document.querySelector('.left-panel').style.display = 'flex';
+                }
+                board.resize();
+            });
+        });
+
+        // Add click handler to title/logo
+        document.querySelector('.title').addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            // Save preference to localStorage
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        });
+        
+        function setupEventListeners() {
+            // Top buttons
+            document.getElementById('showFilesBtn').addEventListener('click', function() {
+                showPanel('filesPanel');
+                updateButtonStates(this);
+            });
+            
+            document.getElementById('showGamesBtn').addEventListener('click', function() {
+                showPanel('gamesListPanel');
+                updateButtonStates(this);
+                
+                if (currentPgnFile && games.length === 0) {
+                    loadPgnFile(currentPgnFile);
+                }
+            });
+            
+            document.getElementById('showRelatedBtn').addEventListener('click', function() {
+                showPanel('relatedGamesPanel');
+                updateButtonStates(this);
+                updateRelatedGames();
+            });
+            
+            // Add PGN button
+            document.getElementById('addPgnBtn').addEventListener('click', function() {
+                document.getElementById('pgnFileInput').click();
+            });
+            
+            // Mobile menu buttons
+            document.getElementById('mobileFilesBtn').addEventListener('click', function() {
+                showPanel('filesPanel');
+                toggleMarshmallowMenu();
+            });
+            
+            document.getElementById('mobileGamesBtn').addEventListener('click', function() {
+                showPanel('gamesListPanel');
+                toggleMarshmallowMenu();
+                
+                if (currentPgnFile && games.length === 0) {
+                    loadPgnFile(currentPgnFile);
+                }
+            });
+            
+            document.getElementById('mobileRelatedBtn').addEventListener('click', function() {
+                showPanel('relatedGamesPanel');
+                toggleMarshmallowMenu();
+                updateRelatedGames();
+            });
+            
+            document.getElementById('mobileAddBtn').addEventListener('click', function() {
+                document.getElementById('pgnFileInput').click();
+                toggleMarshmallowMenu();
+            });
+            
+            document.getElementById('marshmallowMainBtn').addEventListener('click', toggleMarshmallowMenu);
+            
+            // Back buttons
+            document.getElementById('backFromFilesBtn').addEventListener('click', function() {
+                hidePanels();
+            });
+            
+            document.getElementById('backFromGamesBtn').addEventListener('click', function() {
+                hidePanels();
+            });
+            
+            document.getElementById('backFromRelatedBtn').addEventListener('click', function() {
+                hidePanels();
+            });
+            
+            // File upload handling
+            document.getElementById('pgnFileInput').addEventListener('change', handleFileUpload);
+            
+            // PGN file selection
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('pgn-file-item')) {
+                    currentPgnFile = e.target.getAttribute('data-filename');
+                    loadPgnFile(currentPgnFile);
+                    updateActiveState('.pgn-file-item', e.target);
+                    if (isMobile) hidePanels();
+                }
+                
+                if (e.target.classList.contains('game-item')) {
+                    const index = parseInt(e.target.getAttribute('data-index'));
+                    loadGame(index);
+                    updateActiveState('.game-item', e.target);
+                    if (isMobile) hidePanels();
+                }
+            });
+            
+            // Move navigation
+            document.getElementById('firstMoveBtn').addEventListener('click', goToFirstMove);
+            document.getElementById('prevMoveBtn').addEventListener('click', goToPrevMove);
+            document.getElementById('nextMoveBtn').addEventListener('click', goToNextMove);
+            document.getElementById('lastMoveBtn').addEventListener('click', goToLastMove);
+            
+            // Auto-play controls
+            document.getElementById('playBtn').addEventListener('click', startAutoPlay);
+            document.getElementById('pauseBtn').addEventListener('click', pauseAutoPlay);
+            document.getElementById('speedSelect').addEventListener('change', function() {
+                playSpeed = parseInt(this.value);
+                if (autoPlayInterval) {
+                    pauseAutoPlay();
+                    startAutoPlay();
+                }
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft') goToPrevMove();
+                if (e.key === 'ArrowRight') goToNextMove();
+                if (e.key === ' ') {
+                    if (autoPlayInterval) pauseAutoPlay();
+                    else startAutoPlay();
+                }
+            });
+        }
+        
+        function toggleMarshmallowMenu() {
+            document.getElementById('marshmallowMenu').classList.toggle('open');
+        }
+        
+        function showPanel(panelId) {
+            if (isMobile) {
+                // Hide all panels first
+                document.querySelectorAll('.panel-section').forEach(panel => {
+                    panel.style.display = 'none';
+                });
+                
+                // Show the selected panel
+                document.getElementById(panelId).style.display = 'block';
+                document.querySelector('.left-panel').style.display = 'flex';
+            } else {
+                // Desktop behavior
+                document.getElementById('filesPanel').style.display = panelId === 'filesPanel' ? 'block' : 'none';
+                document.getElementById('gamesListPanel').style.display = panelId === 'gamesListPanel' ? 'block' : 'none';
+                document.getElementById('relatedGamesPanel').style.display = panelId === 'relatedGamesPanel' ? 'block' : 'none';
+            }
+        }
+        
+        function hidePanels() {
+            if (isMobile) {
+                document.querySelector('.left-panel').style.display = 'none';
+            }
+        }
+        
+        function updateButtonStates(activeButton) {
+            document.querySelectorAll('.top-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            activeButton.classList.add('active');
+        }
+        
+        function updateActiveState(selector, activeElement) {
+            document.querySelectorAll(selector).forEach(item => {
+                item.classList.remove('active');
+            });
+            activeElement.classList.add('active');
+        }
+        
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const filesList = document.getElementById('pgnFilesList');
+            filesList.innerHTML = '<div class="loading">Loading file...</div>';
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const pgnContent = e.target.result;
+                loadedFiles[file.name] = pgnContent;
+                
+                // Update file list
+                updateFileList();
+                
+                // Load this file
+                currentPgnFile = file.name;
+                loadPgnFile(file.name);
+                
+                if (isMobile) {
+                    showPanel('gamesListPanel');
+                }
+            };
+            
+            reader.onerror = function() {
+                console.error('Error reading file:', file.name);
+                filesList.innerHTML = '<div class="error">Error reading file</div>';
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function updateFileList() {
+            const filesList = document.getElementById('pgnFilesList');
+            
+            if (Object.keys(loadedFiles).length === 0) {
+                filesList.innerHTML = '<div class="empty">No PGN files loaded</div>';
+                return;
+            }
+            
+            filesList.innerHTML = '';
+            
+            Object.keys(loadedFiles).forEach(filename => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'pgn-file-item';
+                if (filename === currentPgnFile) {
+                    fileItem.classList.add('active');
+                }
+                fileItem.dataset.filename = filename;
+                fileItem.textContent = filename;
+                
+                filesList.appendChild(fileItem);
+            });
+        }
+        
+        function loadPgnFile(filename) {
+            if (!loadedFiles[filename]) return;
+            
+            const gamesList = document.getElementById('gamesList');
+            gamesList.innerHTML = '<div class="loading">Loading games...</div>';
+            document.getElementById('moveList').innerHTML = '';
+            document.getElementById('gameHeader').innerHTML = '';
+            board.position('start');
+            
+            try {
+                // Parse the PGN file
+                const pgnContent = loadedFiles[filename];
+                const parsedGames = parsePgnFile(pgnContent);
+                
+                games = parsedGames;
+                updateGamesList();
+                
+                // Load first game by default
+                if (games.length > 0) {
+                    loadGame(0);
+                }
+            } catch (error) {
+                console.error('Error loading file:', error);
+                gamesList.innerHTML = '<div class="error">Error parsing PGN file</div>';
+            }
+        }
+        
+       function parsePgnFile(pgnContent) {
+            // First normalize line endings and clean up the content
+            pgnContent = pgnContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            
+            // Split into individual game sections
+            const gameSections = pgnContent.split(/\n\n\n|\n\n(?=\[)/);
+            const parsedGames = [];
+            
+            // Use a single chess instance for parsing to avoid recreation
+            const tempGame = new Chess();
+            
+            for (const section of gameSections) {
+                const trimmedSection = section.trim();
+                if (!trimmedSection) continue;
+                
+                try {
+                    // Extract headers first (faster than full parse)
+                    const headers = {};
+                    const headerLines = trimmedSection.match(/^\[(\w+)\s+"([^"]*)"\]/gm) || [];
+                    
+                    for (const line of headerLines) {
+                        const match = line.match(/^\[(\w+)\s+"([^"]*)"\]$/);
+                        if (match) headers[match[1]] = match[2];
+                    }
+                    
+                    // Try to parse moves (only if needed)
+                    let movesParsed = false;
+                    if (tempGame.load_pgn(trimmedSection)) {
+                        movesParsed = true;
+                        const moves = tempGame.history({verbose: true});
+                        parsedGames.push({
+                            pgn: trimmedSection,
+                            headers: headers,
+                            moves: moves,
+                            result: headers.Result
+                        });
+                    } else {
+                        // Fallback - just store headers if moves can't be parsed
+                        parsedGames.push({
+                            pgn: trimmedSection,
+                            headers: headers,
+                            moves: [],
+                            result: headers.Result
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error parsing PGN section:', error);
+                    // Store what we can even if moves fail
+                    parsedGames.push({
+                        pgn: trimmedSection,
+                        headers: {},
+                        moves: [],
+                        result: '*'
+                    });
+                }
+            }
+            
+            return parsedGames;
+        } 
+        function updateGamesList() {
+            const gamesList = document.getElementById('gamesList');
+            
+            if (games.length === 0) {
+                gamesList.innerHTML = '<div class="empty">No games found in this PGN file</div>';
+                return;
+            }
+            
+            // Use document fragment for batch DOM updates
+            const fragment = document.createDocumentFragment();
+            
+            games.forEach((gameData, index) => {
+                const gameItem = document.createElement('div');
+                gameItem.className = 'game-item';
+                gameItem.dataset.index = index;
+                
+                const white = gameData.headers.White || 'Unknown';
+                const black = gameData.headers.Black || 'Unknown';
+                const event = gameData.headers.Event ? `${gameData.headers.Event}` : '';
+                const result = gameData.headers.Result ? ` - ${gameData.headers.Result}` : '';
+                
+                gameItem.innerHTML = `
+                    <div class="game-header">
+                        <span class="game-number">${index + 1}.</span>
+                        <span class="players">${white} vs ${black}</span>
+                    </div>
+                    <div class="game-meta">${event}${result}</div>
+                `;
+                
+                fragment.appendChild(gameItem);
+            });
+            
+            // Clear and append in one operation
+            gamesList.innerHTML = '';
+            gamesList.appendChild(fragment);
+        }   
+        
+        function loadGame(index) {
+            if (index < 0 || index >= games.length) return;
+            
+            currentGameIndex = index;
+            const gameData = games[index];
+            
+            try {
+                // Use pre-parsed moves if available
+                if (gameData.moves && gameData.moves.length > 0) {
+                    movesHistory = gameData.moves;
+                    game.load_pgn(gameData.pgn); // Still needed to set game state
+                } 
+                // Otherwise parse now
+                else if (game.load_pgn(gameData.pgn)) {
+                    movesHistory = game.history({verbose: true});
+                    // Cache the parsed moves
+                    gameData.moves = movesHistory;
+                } else {
+                    throw new Error("Failed to load game from PGN");
+                }
+                
+                currentMove = 0;
+                board.position('start');
+                
+                updateGameInfo(gameData.headers);
+                updateMoveList();
+                updateCurrentGameTitle(gameData.headers);
+                
+                // Highlight the current game
+                document.querySelectorAll('.game-item').forEach((item, i) => {
+                    item.classList.toggle('active', i === index);
+                });
+            } catch (error) {
+                console.error('Error loading game:', error);
+                alert(`Error loading game: ${error.message}`);
+            }
+}
+        function updateCurrentGameTitle(headers) {
+            const white = headers.White || 'White';
+            const black = headers.Black || 'Black';
+            const event = headers.Event ? `${headers.Event} - ` : '';
+            document.getElementById('currentGameTitle').textContent = 
+                `${event}${white} vs ${black}`;
+        }
+        
+        function updateGameInfo(headers) {
+            let html = `
+                <div class="players">
+                    <div class="player white">
+                        <span class="name">${headers.White || 'White'}</span>
+                        ${headers.WhiteElo ? `<span class="elo">(${headers.WhiteElo})</span>` : ''}
+                    </div>
+                    <div class="vs">vs</div>
+                    <div class="player black">
+                        <span class="name">${headers.Black || 'Black'}</span>
+                        ${headers.BlackElo ? `<span class="elo">(${headers.BlackElo})</span>` : ''}
+                    </div>
+                </div>
+                <div class="game-meta">
+                    <div>${headers.Site || ''} | ${headers.Date || ''}</div>
+                    <div class="result">${headers.Result || ''}</div>
+                </div>
+            `;
+            
+            document.getElementById('gameHeader').innerHTML = html;
+        }
+        
+        function updateMoveList() {
+            let html = '';
+            let moveNumber = 1;
+            let movePair = '';
+            
+            for (let i = 0; i < movesHistory.length; i++) {
+                const move = movesHistory[i];
+                
+                if (i % 2 === 0) {
+                    movePair = `<div class="move-pair">
+                        <span class="move-number">${moveNumber}.</span>
+                        <span class="move white-move" data-move="${i}">${move.san}</span>`;
+                } else {
+                    movePair += `<span class="move black-move" data-move="${i}">${move.san}</span></div>`;
+                    html += movePair;
+                    moveNumber++;
+                }
+            }
+            
+            if (movesHistory.length % 2 !== 0) {
+                html += movePair + '</div>';
+            }
+            
+            document.getElementById('moveList').innerHTML = html;
+            
+            // Add click handlers to moves
+            document.querySelectorAll('.move').forEach(moveEl => {
+                moveEl.addEventListener('click', function() {
+                    const moveIndex = parseInt(this.getAttribute('data-move'));
+                    goToMove(moveIndex);
+                });
+            });
+            
+            updateActiveMove();
+        }
+        
+        function updateRelatedGames() {
+            const relatedGamesList = document.getElementById('relatedGamesList');
+            relatedGamesList.innerHTML = '<div class="loading">Finding related games...</div>';
+            
+            if (currentMove === 0 || !games.length) {
+                relatedGamesList.innerHTML = '<div class="empty">No moves played yet</div>';
+                return;
+            }
+            
+            // Get current move sequence as text
+            const currentMoves = game.history().slice(0, currentMove);
+            const currentMovesText = currentMoves.join(' ');
+            
+            // Simple text search approach
+            const relatedGames = [];
+            
+            games.forEach((gameData, index) => {
+                if (index === currentGameIndex) return;
+                
+                try {
+                    const tempGame = new Chess();
+                    if (tempGame.load_pgn(gameData.pgn)) {
+                        const gameMoves = tempGame.history();
+                        const gameMovesText = gameMoves.join(' ');
+                        
+                        // Find where our current moves match
+                        const matchIndex = gameMovesText.indexOf(currentMovesText);
+                        if (matchIndex !== -1) {
+                            // Count how many moves match
+                            const matchedMoves = currentMoves.length;
+                            relatedGames.push({
+                                gameIndex: index,
+                                moveIndex: matchedMoves - 1,
+                                headers: gameData.headers
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error processing game:', error);
+                }
+            });
+            
+            if (relatedGames.length === 0) {
+                relatedGamesList.innerHTML = '<div class="empty">No related games found</div>';
+                return;
+            }
+            
+            // Display related games
+            relatedGamesList.innerHTML = '';
+            
+            relatedGames.forEach(gameData => {
+                const gameItem = document.createElement('div');
+                gameItem.className = 'related-game-item';
+                
+                const white = gameData.headers.White || 'Unknown';
+                const black = gameData.headers.Black || 'Unknown';
+                const result = gameData.headers.Result ? ` - ${gameData.headers.Result}` : '';
+                
+                gameItem.innerHTML = `
+                    <div><strong>${white} vs ${black}${result}</strong></div>
+                    <div>${gameData.headers.Event || ''} (Move ${gameData.moveIndex + 1})</div>
+                `;
+                
+                gameItem.addEventListener('click', () => {
+                    loadGame(gameData.gameIndex);
+                    goToMove(gameData.moveIndex);
+                    if (isMobile) hidePanels();
+                });
+                
+                relatedGamesList.appendChild(gameItem);
+            });
+        }
+        
+        function goToMove(moveIndex) {
+            if (moveIndex < 0 || moveIndex > movesHistory.length) return;
+            
+            currentMove = moveIndex;
+            game.reset();
+            
+            for (let i = 0; i < currentMove; i++) {
+                game.move(movesHistory[i]);
+            }
+            
+            board.position(game.fen());
+            updateActiveMove();
+        }
+        
+        function goToFirstMove() { goToMove(0); }
+        function goToPrevMove() { goToMove(currentMove - 1); }
+        function goToNextMove() { goToMove(currentMove + 1); }
+        function goToLastMove() { goToMove(movesHistory.length); }
+        
+        function updateActiveMove() {
+            document.querySelectorAll('.move').forEach(moveEl => {
+                const moveIndex = parseInt(moveEl.getAttribute('data-move'));
+                moveEl.classList.remove('active', 'current');
+                
+                if (moveIndex < currentMove) {
+                    moveEl.classList.add('active');
+                } else if (moveIndex === currentMove) {
+                    moveEl.classList.add('current');
+                }
+            });
+        }
+        
+        function startAutoPlay() {
+            if (autoPlayInterval) clearInterval(autoPlayInterval);
+            
+            if (currentMove >= movesHistory.length) {
+                goToFirstMove();
+            }
+            
+            autoPlayInterval = setInterval(() => {
+                if (currentMove < movesHistory.length) {
+                    goToNextMove();
+                } else {
+                    pauseAutoPlay();
+                }
+            }, playSpeed);
+            
+            document.getElementById('playBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+        }
+        
+        function pauseAutoPlay() {
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+            }
+            
+            document.getElementById('playBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+        
+        function onDrop(source, target) {
+            const move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q'
+            });
+            
+            if (move === null) return 'snapback';
+            updateMoveInHistory();
+        }
+        
+        function updateMoveInHistory() {
+            movesHistory = game.history({verbose: true});
+            currentMove = movesHistory.length;
+            updateMoveList();
+            updateActiveMove();
+        }
+    </script>
+</body>
+</html>
