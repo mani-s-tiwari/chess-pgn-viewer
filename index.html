@@ -297,6 +297,93 @@
             font-size: 14px;
             margin-bottom: 10px;
         }
+                /* Game information styling */
+        .game-info-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .players-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        .player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .player-name {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .player-elo {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .vs {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .game-meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .meta-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .meta-label {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .meta-value {
+            color: #333;
+        }
+
+        /* Dark mode adjustments */
+        body.dark-mode .players-info {
+            background: #333;
+        }
+
+        body.dark-mode .game-meta-info {
+            background: #2d2d2d;
+        }
+
+        body.dark-mode .meta-item {
+            background: #3a3a3a;
+            color: #f0f0f0;
+        }
+
+        body.dark-mode .meta-label {
+            color: #ccc;
+        }
+
+        body.dark-mode .meta-value {
+            color: #f0f0f0;
+        }
         /* Responsive styles */
         @media (min-width: 768px) {
             .main-container {
@@ -831,25 +918,48 @@
 
         function updateGameInfo(headers) {
             let html = `
-                <div class="players">
-                    <div class="player white">
-                        <span class="name">${headers.White || 'White'}</span>
-                        ${headers.WhiteElo ? `<span class="elo">(${headers.WhiteElo})</span>` : ''}
+                <div class="game-info-container">
+                    <div class="players-info">
+                        <div class="player white-player">
+                            <div class="player-name">${headers.White || 'White'}</div>
+                            ${headers.WhiteElo ? `<div class="player-elo">(${headers.WhiteElo})</div>` : ''}
+                        </div>
+                        <div class="vs">vs</div>
+                        <div class="player black-player">
+                            <div class="player-name">${headers.Black || 'Black'}</div>
+                            ${headers.BlackElo ? `<div class="player-elo">(${headers.BlackElo})</div>` : ''}
+                        </div>
                     </div>
-                    <div class="vs">vs</div>
-                    <div class="player black">
-                        <span class="name">${headers.Black || 'Black'}</span>
-                        ${headers.BlackElo ? `<span class="elo">(${headers.BlackElo})</span>` : ''}
+                    <div class="game-meta-info">
+                        <div class="meta-item">
+                            <span class="meta-label">Event:</span>
+                            <span class="meta-value">${headers.Event || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Site:</span>
+                            <span class="meta-value">${headers.Site || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Date:</span>
+                            <span class="meta-value">${headers.Date || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Result:</span>
+                            <span class="meta-value">${headers.Result || 'N/A'}</span>
+                        </div>
+                        ${headers.ECO ? `
+                        <div class="meta-item">
+                            <span class="meta-label">ECO:</span>
+                            <span class="meta-value">${headers.ECO}</span>
+                        </div>
+                        ` : ''}
                     </div>
-                </div>
-                <div class="game-meta">
-                    <div>${headers.Site || ''} | ${headers.Date || ''}</div>
-                    <div class="result">${headers.Result || ''}</div>
                 </div>
             `;
 
             document.getElementById('gameHeader').innerHTML = html;
         }
+
 
         function updateMoveList() {
             let html = '';
