@@ -11,7 +11,8 @@
             padding: 0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            /* Remove overflow: hidden */
+            min-height: 100vh;
         }
         
         /* Top section with title and buttons */
@@ -21,6 +22,7 @@
             align-items: center;
             margin-bottom: 15px;
             padding: 10px;
+            flex-shrink: 0;
         }
         
         .title {
@@ -59,17 +61,24 @@
         .add-button:hover {
             background: #0b7dda;
         }
-        
+
+
+
+
+
+
+
         /* Main container layout */
         .main-container {
             display: flex;
             flex: 1;
             gap: 20px;
             flex-direction: column;
-            overflow: hidden;
+            /* Remove overflow-y: auto */
+            padding: 0 10px 10px;
+            box-sizing: border-box;
         }
-        
-        /* Left panel with files and related games */
+
         .left-panel {
             width: 100%;
             display: flex;
@@ -77,25 +86,23 @@
             gap: 20px;
             display: none;
         }
-        
+
         .panel-section {
             flex: 1;
-            overflow-y: auto;
+            /* Remove overflow-y: auto */
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 15px;
         }
-        
-        /* Right panel for moves */
+
         .right-panel {
             width: 100%;
-            overflow-y: auto;
+            /* Remove overflow-y: auto */
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 15px;
             order: 3;
         }
-        
         /* Common item styles */
         .pgn-file-item, .game-item, .related-game-item {
             padding: 10px;
@@ -125,7 +132,7 @@
             padding: 10px;
             box-sizing: border-box;
         }
-        
+
         #board {
             width: 100%;
             max-width: 500px;
@@ -225,6 +232,7 @@
             border-radius: 4px;
             text-align: center;
             font-weight: bold;
+            flex-shrink: 0;
         }
 
         /* Dark mode styles */
@@ -398,6 +406,7 @@
             .back-button {
                 display: inline-block;
             }
+            
         }
     </style>
     <link rel="stylesheet"
@@ -409,9 +418,6 @@
     <div class="top-section">
         <div class="title" style="display: flex; align-items: center; gap: 0.75rem;">
             <img src="logo.png" alt="Logo" style="height: 2.8rem;" />
-            <h1 style="margin: 0.5rem 0; font-size: 2.4rem;">
-                BaddKnight
-            </h1>
         </div>
         
         <div class="button-container">
@@ -422,11 +428,6 @@
         </div>
         
         <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
-    </div>
-
-    <!-- PGN Viewer subtitle -->
-    <div style="font-size: 1.2rem; font-weight: normal; margin-top: -1.5rem; margin-bottom: 0.5rem; padding: 0 10px; text-align: center;">
-        Synchorized Chess PGN Viewer
     </div>
 
     <!-- Current game name -->
@@ -548,7 +549,7 @@
                 if (!isMobile) {
                     // Reset to desktop view when resizing to larger screen
                     document.querySelectorAll('.panel-section').forEach(panel => {
-                        panel.style.display = 'none';
+                        panel.style.display = 'block';
                     });
                     document.querySelector('.left-panel').style.display = 'flex';
                 }
@@ -787,9 +788,9 @@
             board.position('start');
             
             try {
-                // Parse the PGN file
+                // Parse only headers first for faster loading
                 const pgnContent = loadedFiles[filename];
-                const parsedGames = parsePgnFile(pgnContent);
+                const parsedGames = parsePgnHeaders(pgnContent);
                 
                 games = parsedGames;
                 updateGamesList();
@@ -804,16 +805,13 @@
             }
         }
         
-       function parsePgnFile(pgnContent) {
+        function parsePgnHeaders(pgnContent) {
             // First normalize line endings and clean up the content
             pgnContent = pgnContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
             
             // Split into individual game sections
             const gameSections = pgnContent.split(/\n\n\n|\n\n(?=\[)/);
             const parsedGames = [];
-            
-            // Use a single chess instance for parsing to avoid recreation
-            const tempGame = new Chess();
             
             for (const section of gameSections) {
                 const trimmedSection = section.trim();
@@ -829,40 +827,28 @@
                         if (match) headers[match[1]] = match[2];
                     }
                     
-                    // Try to parse moves (only if needed)
-                    let movesParsed = false;
-                    if (tempGame.load_pgn(trimmedSection)) {
-                        movesParsed = true;
-                        const moves = tempGame.history({verbose: true});
-                        parsedGames.push({
-                            pgn: trimmedSection,
-                            headers: headers,
-                            moves: moves,
-                            result: headers.Result
-                        });
-                    } else {
-                        // Fallback - just store headers if moves can't be parsed
-                        parsedGames.push({
-                            pgn: trimmedSection,
-                            headers: headers,
-                            moves: [],
-                            result: headers.Result
-                        });
-                    }
+                    // Store the raw PGN and headers, we'll parse moves when needed
+                    parsedGames.push({
+                        pgn: trimmedSection,
+                        headers: headers,
+                        moves: null, // Will be parsed when game is loaded
+                        result: headers.Result || '*'
+                    });
                 } catch (error) {
                     console.error('Error parsing PGN section:', error);
-                    // Store what we can even if moves fail
+                    // Store what we can even if headers fail
                     parsedGames.push({
                         pgn: trimmedSection,
                         headers: {},
-                        moves: [],
+                        moves: null,
                         result: '*'
                     });
                 }
             }
             
             return parsedGames;
-        } 
+        }
+        
         function updateGamesList() {
             const gamesList = document.getElementById('gamesList');
             
@@ -907,17 +893,20 @@
             const gameData = games[index];
             
             try {
-                // Use pre-parsed moves if available
-                if (gameData.moves && gameData.moves.length > 0) {
-                    movesHistory = gameData.moves;
-                    game.load_pgn(gameData.pgn); // Still needed to set game state
-                } 
-                // Otherwise parse now
-                else if (game.load_pgn(gameData.pgn)) {
-                    movesHistory = game.history({verbose: true});
-                    // Cache the parsed moves
-                    gameData.moves = movesHistory;
-                } else {
+                // Parse moves if not already parsed
+                if (gameData.moves === null) {
+                    const tempGame = new Chess();
+                    if (tempGame.load_pgn(gameData.pgn)) {
+                        gameData.moves = tempGame.history({verbose: true});
+                    } else {
+                        gameData.moves = [];
+                    }
+                }
+                
+                movesHistory = gameData.moves;
+                
+                // Load the game into our main chess instance
+                if (!game.load_pgn(gameData.pgn)) {
                     throw new Error("Failed to load game from PGN");
                 }
                 
@@ -936,7 +925,8 @@
                 console.error('Error loading game:', error);
                 alert(`Error loading game: ${error.message}`);
             }
-}
+        }
+        
         function updateCurrentGameTitle(headers) {
             const white = headers.White || 'White';
             const black = headers.Black || 'Black';
@@ -1023,22 +1013,29 @@
                 if (index === currentGameIndex) return;
                 
                 try {
-                    const tempGame = new Chess();
-                    if (tempGame.load_pgn(gameData.pgn)) {
-                        const gameMoves = tempGame.history();
-                        const gameMovesText = gameMoves.join(' ');
-                        
-                        // Find where our current moves match
-                        const matchIndex = gameMovesText.indexOf(currentMovesText);
-                        if (matchIndex !== -1) {
-                            // Count how many moves match
-                            const matchedMoves = currentMoves.length;
-                            relatedGames.push({
-                                gameIndex: index,
-                                moveIndex: matchedMoves - 1,
-                                headers: gameData.headers
-                            });
+                    // Only parse moves if not already parsed
+                    if (gameData.moves === null) {
+                        const tempGame = new Chess();
+                        if (tempGame.load_pgn(gameData.pgn)) {
+                            gameData.moves = tempGame.history({verbose: true});
+                        } else {
+                            gameData.moves = [];
                         }
+                    }
+                    
+                    const gameMoves = gameData.moves.map(m => m.san);
+                    const gameMovesText = gameMoves.join(' ');
+                    
+                    // Find where our current moves match
+                    const matchIndex = gameMovesText.indexOf(currentMovesText);
+                    if (matchIndex !== -1) {
+                        // Count how many moves match
+                        const matchedMoves = currentMoves.length;
+                        relatedGames.push({
+                            gameIndex: index,
+                            moveIndex: matchedMoves - 1,
+                            headers: gameData.headers
+                        });
                     }
                 } catch (error) {
                     console.error('Error processing game:', error);
