@@ -2,7 +2,8 @@
 
 **A dynamic web-based PGN viewer with game synchronization, analysis tools, and related game discovery**
 https://chess-pgn-viewer.onrender.com
-<!-- Replace with actual screenshot -->
+<img width="1879" height="837" alt="image" src="https://github.com/user-attachments/assets/b7312365-3fd3-4696-9335-741c4f6281d6" />
+
 
 ## ✨ Features
 
